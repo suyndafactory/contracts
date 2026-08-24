@@ -16,6 +16,13 @@ export interface ManifestFunction {
      * — ver design-mandatos-capa1.md D5 en suynda-foundation.
      */
     delegable: boolean;
+    /**
+     * D2 — dimensión de scope declarada por el módulo. Opaca para Foundation:
+     * se almacena y se round-tripa; no se interpreta. Omitido / null → function
+     * unscoped (todas las de Compra). String no vacío → scoped. No hay enum
+     * global de scope types ni de Departamento en este paquete.
+     */
+    scope_type?: string | null;
 }
 export interface ManifestRole {
     role_key: string;
@@ -46,6 +53,7 @@ export interface ModuleManifest {
     mandate_types: ManifestMandateProfile[];
 }
 export declare const COMPRA_MANIFEST: ModuleManifest;
+export declare const LAB_MANIFEST: ModuleManifest;
 export declare const MANIFESTS: readonly ModuleManifest[];
 export declare function manifestByModuleKey(moduleKey: string): ModuleManifest | undefined;
 //# sourceMappingURL=manifests.d.ts.map

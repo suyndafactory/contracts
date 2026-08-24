@@ -46,6 +46,11 @@
       "initiator": "both"
     },
     {
+      "key": "module_access.resolve",
+      "availability": "FAIL_AFTER_GRACE",
+      "initiator": "both"
+    },
+    {
       "key": "roles.change",
       "availability": "FAIL_CLOSED",
       "initiator": "user"

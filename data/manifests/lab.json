@@ -1,0 +1,29 @@
+{
+  "module_key": "lab",
+  "manifest_version": 1,
+  "functions": [
+    { "function_key": "ver", "nombre": "Ver", "descripcion": "Ver y navegar el módulo (worklist no clínica)", "autorizada_por_canal": false, "orden": 1, "delegable": true },
+    { "function_key": "admitir", "nombre": "Admitir", "descripcion": "Admitir solicitudes en el frente de admisión", "autorizada_por_canal": false, "orden": 2, "delegable": false },
+    { "function_key": "muestras", "nombre": "Muestras", "descripcion": "Operar muestras: recepción, logística y cadena de custodia", "autorizada_por_canal": false, "orden": 3, "delegable": false },
+    { "function_key": "cargar", "nombre": "Cargar resultados", "descripcion": "Cargar resultados de ensayos", "autorizada_por_canal": false, "orden": 4, "delegable": false, "scope_type": "departamento" },
+    { "function_key": "verificar", "nombre": "Verificar", "descripcion": "Verificar resultados de ensayos", "autorizada_por_canal": false, "orden": 5, "delegable": false, "scope_type": "departamento" },
+    { "function_key": "entregar", "nombre": "Entregar", "descripcion": "Entregar resultados en mostrador", "autorizada_por_canal": false, "orden": 6, "delegable": true },
+    { "function_key": "caja", "nombre": "Caja", "descripcion": "Cobrar cuando el módulo opera caja propia", "autorizada_por_canal": false, "orden": 7, "delegable": false },
+    { "function_key": "excepcion_cobro", "nombre": "Excepción de cobro", "descripcion": "Admitir sin cobro; privilegio explícito no delegable", "autorizada_por_canal": false, "orden": 8, "delegable": false }
+  ],
+  "roles": [
+    { "role_key": "admin_lab", "nombre": "Admin Lab", "orden": 1, "functions": ["ver", "admitir", "muestras", "cargar", "verificar", "entregar", "caja", "excepcion_cobro"] },
+    { "role_key": "recepcion", "nombre": "Recepción", "orden": 2, "functions": ["ver", "admitir", "muestras", "entregar"] },
+    { "role_key": "analitica", "nombre": "Analítica", "orden": 3, "functions": ["ver", "cargar"] },
+    { "role_key": "verificacion", "nombre": "Verificación", "orden": 4, "functions": ["ver", "verificar"] },
+    { "role_key": "caja", "nombre": "Caja", "orden": 5, "functions": ["ver", "caja"] }
+  ],
+  "role_grant_matrix": {
+    "admin_lab": ["admin_lab", "recepcion", "analitica", "verificacion", "caja"],
+    "recepcion": [],
+    "analitica": [],
+    "verificacion": [],
+    "caja": []
+  },
+  "mandate_types": []
+}

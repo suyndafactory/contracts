@@ -56,6 +56,7 @@
         "module_grant.role_changed",
         "module_grant.suspended",
         "module_grant.reactivated",
+        "module_grant.scope_changed",
         "mandate.proposed",
         "mandate.accepted",
         "mandate.rejected",
