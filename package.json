@@ -1,6 +1,6 @@
 {
   "name": "@suynda/contracts",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Shared structural contracts for the Suynda system — enums, modules, events, envelope schema, capabilities, error codes, metered-operation keys. No commercial values.",
   "type": "module",
   "main": "./dist/index.js",

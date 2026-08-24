@@ -4,6 +4,7 @@
  */
 
 import compraManifestData from "../data/manifests/compra.json" with { type: "json" };
+import labManifestData from "../data/manifests/lab.json" with { type: "json" };
 
 export interface ManifestFunction {
   function_key: string;
@@ -19,6 +20,13 @@ export interface ManifestFunction {
    * — ver design-mandatos-capa1.md D5 en suynda-foundation.
    */
   delegable: boolean;
+  /**
+   * D2 — dimensión de scope declarada por el módulo. Opaca para Foundation:
+   * se almacena y se round-tripa; no se interpreta. Omitido / null → function
+   * unscoped (todas las de Compra). String no vacío → scoped. No hay enum
+   * global de scope types ni de Departamento en este paquete.
+   */
+  scope_type?: string | null;
 }
 
 export interface ManifestRole {
@@ -53,8 +61,12 @@ export interface ModuleManifest {
 }
 
 export const COMPRA_MANIFEST = compraManifestData as ModuleManifest;
+export const LAB_MANIFEST = labManifestData as ModuleManifest;
 
-export const MANIFESTS: readonly ModuleManifest[] = [COMPRA_MANIFEST];
+export const MANIFESTS: readonly ModuleManifest[] = [
+  COMPRA_MANIFEST,
+  LAB_MANIFEST,
+];
 
 export function manifestByModuleKey(
   moduleKey: string,

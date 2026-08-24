@@ -38,6 +38,7 @@ export {
 
 export {
   COMPRA_MANIFEST,
+  LAB_MANIFEST,
   MANIFESTS,
   manifestByModuleKey,
   type ModuleManifest,
