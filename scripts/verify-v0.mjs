@@ -12,11 +12,20 @@ import {
   PRIVILEGED_ROLE_KEYS,
   COMPRA_MANIFEST,
   LAB_MANIFEST,
+  NUCLEO_MANIFEST,
   MANIFESTS,
   manifestByModuleKey,
 } from "../dist/index.js";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { Ajv2020 } from "ajv/dist/2020.js";
+import addFormatsImport from "ajv-formats";
+
+const pkg = JSON.parse(readFileSync(join("package.json"), "utf8"));
+const addFormats =
+  typeof addFormatsImport === "function"
+    ? addFormatsImport
+    : addFormatsImport.default;
 
 function sorted(arr) {
   return [...arr].sort();
@@ -195,6 +204,125 @@ function verifyManifestShared(m) {
   return errors;
 }
 
+/** Firmas congeladas del manifiesto Núcleo (Contract Change Package v1.0 / MC-02). */
+function verifyNucleoManifest(m) {
+  const errors = [];
+  if (m.module_key !== "nucleo") {
+    errors.push(`nucleo manifest module_key must be nucleo; got ${m.module_key}`);
+  }
+  if (m.manifest_version !== 1) {
+    errors.push(`nucleo manifest_version must be 1; got ${m.manifest_version}`);
+  }
+  if (!Array.isArray(m.roles) || m.roles.length !== 0) {
+    errors.push("nucleo roles must be [] (lab pattern; no ROLE_KEYS)");
+  }
+  if (Object.keys(m.role_grant_matrix ?? {}).length !== 0) {
+    errors.push("nucleo role_grant_matrix must be {}");
+  }
+  if (!Array.isArray(m.mandate_types) || m.mandate_types.length !== 0) {
+    errors.push("nucleo mandate_types must be [] in V1");
+  }
+
+  const expectedFns = [
+    "ver_libro",
+    "operar_registro",
+    "aprobar",
+    "cerrar_periodo",
+    "aplicar_comun_acotado",
+    "operar_contribuyente",
+    "configurar",
+  ];
+  const actualFns = m.functions.map((f) => f.function_key);
+  if (!sameSet(actualFns, expectedFns) || actualFns.length !== expectedFns.length) {
+    errors.push(
+      `nucleo functions must be exactly ${JSON.stringify(expectedFns)}; got ${JSON.stringify(sorted(actualFns))}`,
+    );
+  }
+
+  const delegableExpected = new Set([
+    "ver_libro",
+    "operar_registro",
+    "aprobar",
+    "aplicar_comun_acotado",
+  ]);
+  for (const f of m.functions) {
+    const st = f.scope_type;
+    if (st !== undefined && st !== null) {
+      errors.push(`${f.function_key} must be unscoped (no scope_type)`);
+    }
+    const expectDelegable = delegableExpected.has(f.function_key);
+    if (f.delegable !== expectDelegable) {
+      errors.push(
+        `${f.function_key}: delegable must be ${expectDelegable}`,
+      );
+    }
+  }
+
+  const aplicar = m.functions.find((f) => f.function_key === "aplicar_comun_acotado");
+  if (!aplicar) {
+    errors.push("aplicar_comun_acotado must exist as an individually grantable function");
+  }
+
+  const MATRIZ = {
+    operacion: ["ver_libro", "operar_registro"],
+    aprobacion: ["ver_libro", "operar_registro", "aprobar", "cerrar_periodo"],
+    direccion: [
+      "ver_libro",
+      "operar_registro",
+      "aprobar",
+      "cerrar_periodo",
+      "operar_contribuyente",
+      "configurar",
+    ],
+  };
+  const presets = m.permission_presets ?? [];
+  if (!sameSet(presets.map((p) => p.preset_key), Object.keys(MATRIZ))) {
+    errors.push(
+      `nucleo presets must be exactly ${JSON.stringify(Object.keys(MATRIZ))}; got ${JSON.stringify(sorted(presets.map((p) => p.preset_key)))}`,
+    );
+  }
+  for (const p of presets) {
+    const expected = MATRIZ[p.preset_key];
+    if (expected && !sameSet(p.functions, expected)) {
+      errors.push(
+        `nucleo preset ${p.preset_key} must be ${JSON.stringify(expected)}; got ${JSON.stringify(sorted(p.functions))}`,
+      );
+    }
+    if (p.functions.includes("aplicar_comun_acotado")) {
+      errors.push(
+        `nucleo preset ${p.preset_key} must EXCLUDE aplicar_comun_acotado (explicit individual grant only)`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+function duplicates(arr) {
+  const seen = new Set();
+  const dups = [];
+  for (const x of arr) {
+    if (seen.has(x)) dups.push(x);
+    seen.add(x);
+  }
+  return dups;
+}
+
+function compileSchema(schema) {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  addFormats(ajv);
+  return ajv.compile(schema);
+}
+
+function schemaResult(validate, obj) {
+  const ok = validate(obj) === true;
+  const errors = (validate.errors ?? []).map((e) => {
+    const path = e.instancePath === "" ? "/" : e.instancePath;
+    return `${path} ${e.message ?? "invalid"}`.trim();
+  });
+  return { ok, errors };
+}
+
 /** Las firmas congeladas del manifiesto lab (26-ago) — que no derritan en silencio. */
 function verifyLabManifest(m) {
   const errors = [];
@@ -369,8 +497,209 @@ console.log("lab manifest checks:", labErrors.length === 0 ? "ok" : labErrors);
 const labLookupOk =
   manifestByModuleKey("lab") === LAB_MANIFEST &&
   manifestByModuleKey("compra") === COMPRA_MANIFEST &&
-  MANIFESTS.length === 2;
-console.log("manifestByModuleKey lab/compra:", labLookupOk);
+  manifestByModuleKey("nucleo") === NUCLEO_MANIFEST &&
+  MANIFESTS.length === 3;
+console.log("manifestByModuleKey lab/compra/nucleo:", labLookupOk);
+
+const nucleoErrors = verifyNucleoManifest(NUCLEO_MANIFEST);
+console.log("nucleo manifest checks:", nucleoErrors.length === 0 ? "ok" : nucleoErrors);
+
+const versionOk = pkg.version === "0.9.0";
+console.log("package version 0.9.0:", versionOk);
+
+const contributorCap = CAPABILITIES.find((c) => c.key === "contributor_context.read");
+const contributorCapOk =
+  contributorCap?.availability === "FAIL_CLOSED" &&
+  contributorCap?.initiator === "system";
+console.log("contributor_context.read capability:", contributorCapOk);
+
+const nucleoCaps = CAPABILITIES.filter((c) => /^nucleo\./.test(c.key));
+console.log("no nucleo.* capabilities:", nucleoCaps.length === 0, nucleoCaps.map((c) => c.key));
+
+const nucleoEvents = actualTypes.filter((t) => /^nucleo\./.test(t));
+console.log("no nucleo.* EventTypes:", nucleoEvents.length === 0, nucleoEvents);
+
+const purchaseVoidedOk = actualTypes.includes("purchase.voided");
+const purchaseRejectedOk = actualTypes.includes("purchase.rejected");
+const purchaseApprovedOk = actualTypes.includes("purchase.approved");
+console.log("purchase.voided present:", purchaseVoidedOk);
+console.log("purchase.rejected present (pre-approval):", purchaseRejectedOk);
+console.log("purchase.approved present (entity_version re-pull):", purchaseApprovedOk);
+
+const voidedEnvelope = {
+  event: "purchase.voided",
+  version: 1,
+  event_id: "evt-void-1",
+  tenant_id: "550e8400-e29b-41d4-a716-446655440000",
+  origen_module: "compra",
+  ref: { id: "purchase-1" },
+  entity_version: 2,
+  change_mask: ["status"],
+  occurred_at: "2026-08-26T12:00:00.000Z",
+};
+const voidedOk = validateEnvelope(voidedEnvelope);
+const voidedExtra = validateEnvelope({ ...voidedEnvelope, amount: 100 });
+console.log("purchase.voided envelope:", voidedOk);
+console.log("purchase.voided extra payload rejected:", voidedExtra.ok === false);
+
+const rejectedEnvelope = {
+  event: "purchase.rejected",
+  version: 1,
+  event_id: "evt-rej-1",
+  tenant_id: "550e8400-e29b-41d4-a716-446655440000",
+  origen_module: "compra",
+  ref: { id: "purchase-2" },
+  entity_version: 1,
+  change_mask: ["status"],
+  occurred_at: "2026-08-26T12:00:00.000Z",
+};
+const rejectedOk = validateEnvelope(rejectedEnvelope);
+console.log("purchase.rejected envelope (pre-approval):", rejectedOk);
+
+const approvedV2 = {
+  event: "purchase.approved",
+  version: 1,
+  event_id: "evt-appr-2",
+  tenant_id: "550e8400-e29b-41d4-a716-446655440000",
+  origen_module: "compra",
+  ref: { id: "purchase-1" },
+  entity_version: 3,
+  change_mask: ["status"],
+  occurred_at: "2026-08-26T13:00:00.000Z",
+};
+const approvedV2Ok = validateEnvelope(approvedV2);
+console.log("purchase.approved re-emit entity_version:", approvedV2Ok);
+
+const ENVELOPE_REQUIRED = [
+  "event",
+  "version",
+  "event_id",
+  "tenant_id",
+  "origen_module",
+  "ref",
+  "entity_version",
+  "change_mask",
+  "occurred_at",
+];
+const envelopeShapeOk =
+  schema.additionalProperties === false &&
+  JSON.stringify(schema.required) === JSON.stringify(ENVELOPE_REQUIRED) &&
+  schema.properties.ref.additionalProperties === false &&
+  JSON.stringify(schema.properties.ref.required) === JSON.stringify(["id"]) &&
+  Object.keys(schema.properties).length === ENVELOPE_REQUIRED.length;
+console.log("envelope shape unchanged:", envelopeShapeOk);
+
+const eventDups = duplicates(actualTypes);
+const capDups = duplicates(CAPABILITIES.map((c) => c.key));
+console.log("event type duplicates:", eventDups);
+console.log("capability key duplicates:", capDups);
+
+const contributorSchema = JSON.parse(
+  readFileSync(join("schema", "contributor-context.schema.json"), "utf8"),
+);
+const temporalSchema = JSON.parse(
+  readFileSync(join("schema", "temporal-identity-resolution.schema.json"), "utf8"),
+);
+const validateContributor = compileSchema(contributorSchema);
+const validateTemporal = compileSchema(temporalSchema);
+
+const ctxGroup = {
+  context_ref: "11111111-1111-1111-1111-111111111111",
+  documento: { tipo: "RUC", pais: "PY", valor: "80012345-6" },
+  tenants: [
+    { tenant_id: "550e8400-e29b-41d4-a716-446655440000" },
+    { tenant_id: "550e8400-e29b-41d4-a716-446655440001" },
+  ],
+  entity_version: 1,
+  resolved_at: "2026-08-26T12:00:00.000Z",
+};
+const ctxNull = {
+  context_ref: null,
+  documento: { tipo: "RUC", pais: "PY", valor: "80012345-6" },
+  tenants: [{ tenant_id: "550e8400-e29b-41d4-a716-446655440000" }],
+  entity_version: 1,
+  resolved_at: "2026-08-26T12:00:00.000Z",
+};
+const ctxNullDoc = {
+  context_ref: null,
+  documento: null,
+  tenants: [{ tenant_id: "550e8400-e29b-41d4-a716-446655440000" }],
+  entity_version: 1,
+  resolved_at: "2026-08-26T12:00:00.000Z",
+};
+const ctxGood = schemaResult(validateContributor, ctxGroup);
+const ctxNullGood = schemaResult(validateContributor, ctxNull);
+const ctxNullDocGood = schemaResult(validateContributor, ctxNullDoc);
+const ctxExtra = schemaResult(validateContributor, {
+  ...ctxNull,
+  dueno_user_id: "user-1",
+});
+const ctxFiscal = schemaResult(validateContributor, {
+  ...ctxNull,
+  fiscal_profile: { ruc: "80012345-6" },
+});
+const ctxMissingTenants = schemaResult(validateContributor, {
+  context_ref: null,
+  documento: null,
+  entity_version: 1,
+  resolved_at: "2026-08-26T12:00:00.000Z",
+});
+console.log("ContributorContext group:", ctxGood.ok);
+console.log("ContributorContext context_ref:null:", ctxNullGood.ok);
+console.log("ContributorContext degenerate documento null:", ctxNullDocGood.ok);
+console.log("ContributorContext extra field rejected:", ctxExtra.ok === false);
+console.log("ContributorContext fiscal extra rejected:", ctxFiscal.ok === false);
+console.log("ContributorContext missing tenants rejected:", ctxMissingTenants.ok === false);
+
+const temporalResolved = schemaResult(validateTemporal, {
+  resolution: "resolved",
+  effective_at: "2026-08-01",
+  entity_version: 1,
+});
+const temporalNotFound = schemaResult(validateTemporal, {
+  resolution: "not_found",
+  effective_at: "2026-08-01",
+  entity_version: null,
+});
+const temporalInsufficient = schemaResult(validateTemporal, {
+  resolution: "insufficient_history",
+  effective_at: "2026-08-01",
+  entity_version: null,
+});
+const temporalSnapshot = schemaResult(validateTemporal, {
+  resolution: "resolved",
+  effective_at: "2026-08-01",
+  entity_version: 1,
+  fiscal_profile: { ruc: "80012345-6" },
+});
+const temporalParty = schemaResult(validateTemporal, {
+  resolution: "resolved",
+  effective_at: "2026-08-01",
+  entity_version: 1,
+  party: { id: "p1" },
+});
+const temporalResolvedNullVer = schemaResult(validateTemporal, {
+  resolution: "resolved",
+  effective_at: "2026-08-01",
+  entity_version: null,
+});
+const temporalNotFoundWithVer = schemaResult(validateTemporal, {
+  resolution: "not_found",
+  effective_at: "2026-08-01",
+  entity_version: 1,
+});
+console.log("TemporalIdentityResolution resolved:", temporalResolved.ok);
+console.log("TemporalIdentityResolution not_found:", temporalNotFound.ok);
+console.log("TemporalIdentityResolution insufficient_history:", temporalInsufficient.ok);
+console.log("TemporalIdentityResolution fiscal snapshot rejected:", temporalSnapshot.ok === false);
+console.log("TemporalIdentityResolution party snapshot rejected:", temporalParty.ok === false);
+console.log("TemporalIdentityResolution resolved requires entity_version:", temporalResolvedNullVer.ok === false);
+console.log("TemporalIdentityResolution not_found forbids entity_version:", temporalNotFoundWithVer.ok === false);
+
+const contributorClosed = contributorSchema.additionalProperties === false;
+const temporalClosed = temporalSchema.additionalProperties === false;
+console.log("ContributorContext schema closed:", contributorClosed);
+console.log("TemporalIdentityResolution schema closed:", temporalClosed);
 
 // Guard firmado 4, tripwire ejecutable: sin enum global de scope types — a
 // propósito. Si algún día aparece "ScopeType" en data/enums.json, el DoD
@@ -405,7 +734,37 @@ const pass =
   labErrors.length === 0 &&
   labLookupOk &&
   noScopeTypeEnum &&
-  grantEventsOk;
+  grantEventsOk &&
+  nucleoErrors.length === 0 &&
+  versionOk &&
+  contributorCapOk &&
+  nucleoCaps.length === 0 &&
+  nucleoEvents.length === 0 &&
+  purchaseVoidedOk &&
+  purchaseRejectedOk &&
+  purchaseApprovedOk &&
+  voidedOk.ok === true &&
+  voidedExtra.ok === false &&
+  rejectedOk.ok === true &&
+  approvedV2Ok.ok === true &&
+  envelopeShapeOk &&
+  eventDups.length === 0 &&
+  capDups.length === 0 &&
+  ctxGood.ok &&
+  ctxNullGood.ok &&
+  ctxNullDocGood.ok &&
+  ctxExtra.ok === false &&
+  ctxFiscal.ok === false &&
+  ctxMissingTenants.ok === false &&
+  temporalResolved.ok &&
+  temporalNotFound.ok &&
+  temporalInsufficient.ok &&
+  temporalSnapshot.ok === false &&
+  temporalParty.ok === false &&
+  temporalResolvedNullVer.ok === false &&
+  temporalNotFoundWithVer.ok === false &&
+  contributorClosed &&
+  temporalClosed;
 
 console.log(pass ? "\nDoD CHECK: PASS" : "\nDoD CHECK: FAIL");
 process.exit(pass ? 0 : 1);

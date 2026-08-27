@@ -41,6 +41,7 @@
         "purchase.registered",
         "purchase.approved",
         "purchase.rejected",
+        "purchase.voided",
         "supplier.fiscal_verified",
         "employee.status_changed",
         "tenant.module_activated",

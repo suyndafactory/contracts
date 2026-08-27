@@ -2,7 +2,8 @@
   "_status": "PROPUESTO",
   "_notes": [
     "Asignaciones de política finales llegan con el security pass.",
-    "factura.emit: FAIL_CLOSED contra datos de padron y FAIL_AFTER_GRACE contra créditos — dos chequeos de una misma operación (§8.1 nota)."
+    "factura.emit: FAIL_CLOSED contra datos de padron y FAIL_AFTER_GRACE contra créditos — dos chequeos de una misma operación (§8.1 nota).",
+    "contributor_context.read: FAIL_CLOSED, initiator system — Foundation service-to-service read of ContributorContext. Not a human/UI capability. No nucleo.* capabilities."
   ],
   "capabilities": [
     {
@@ -44,6 +45,11 @@
       "key": "entitlements.check",
       "availability": "FAIL_AFTER_GRACE",
       "initiator": "both"
+    },
+    {
+      "key": "contributor_context.read",
+      "availability": "FAIL_CLOSED",
+      "initiator": "system"
     },
     {
       "key": "roles.change",

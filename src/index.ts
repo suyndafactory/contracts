@@ -39,6 +39,7 @@ export {
 export {
   COMPRA_MANIFEST,
   LAB_MANIFEST,
+  NUCLEO_MANIFEST,
   MANIFESTS,
   manifestByModuleKey,
   type ModuleManifest,
@@ -88,3 +89,7 @@ export {
   type MeteredOperation,
   type MeteredOperationKey,
 } from "./metered-operations.js";
+
+export { type ContributorContext } from "./contributor-context.js";
+
+export { type TemporalIdentityResolution } from "./temporal-identity.js";

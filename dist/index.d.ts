@@ -6,11 +6,13 @@
  */
 export { MODULE_KEYS, MODULE_CLASSES, MODULE_LEVELS, PARTY_ROLES, IDENTITY_TYPES, CREDENTIAL_TYPES, IDENTIFIER_TYPES, LEDGER_TIPOS, PLAN_KEYS, ROLE_KEYS, PRIVILEGED_ROLE_KEYS, ENUMS, type ModuleKey, type ModuleClass, type ModuleLevel, type PartyRole, type IdentityType, type CredentialType, type IdentifierType, type LedgerTipo, type PlanKey, type Role, } from "./enums.js";
 export { MODULES, moduleByKey, type ModuleSeed, } from "./modules.js";
-export { COMPRA_MANIFEST, LAB_MANIFEST, MANIFESTS, manifestByModuleKey, type ModuleManifest, type ManifestFunction, type ManifestRole, type ManifestPermissionPreset, } from "./manifests.js";
+export { COMPRA_MANIFEST, LAB_MANIFEST, NUCLEO_MANIFEST, MANIFESTS, manifestByModuleKey, type ModuleManifest, type ManifestFunction, type ManifestRole, type ManifestPermissionPreset, } from "./manifests.js";
 export { EVENTS, EVENT_TYPES, type EventCatalogEntry, type EventType, } from "./events.js";
 export { CAPABILITIES, type Capability, type CapabilityKey, type CapabilityAvailability, type CapabilityInitiator, } from "./capabilities.js";
 export { ERROR_CODES, errorByCode, type ErrorCode, type ErrorCodeKey, } from "./errors.js";
 export { validateEnvelope, type EventEnvelope, type EventRef, type ValidateEnvelopeResult, } from "./envelope.js";
 export { type ReferenceCacheColumns, type PartyReference, type ItemReference, type ReferenceColumns, } from "./reference.js";
 export { METERED_OPERATIONS, type MeteredOperation, type MeteredOperationKey, } from "./metered-operations.js";
+export { type ContributorContext } from "./contributor-context.js";
+export { type TemporalIdentityResolution } from "./temporal-identity.js";
 //# sourceMappingURL=index.d.ts.map

@@ -4,11 +4,14 @@
  */
 import compraManifestData from "../data/manifests/compra.json" with { type: "json" };
 import labManifestData from "../data/manifests/lab.json" with { type: "json" };
+import nucleoManifestData from "../data/manifests/nucleo.json" with { type: "json" };
 export const COMPRA_MANIFEST = compraManifestData;
 export const LAB_MANIFEST = labManifestData;
+export const NUCLEO_MANIFEST = nucleoManifestData;
 export const MANIFESTS = [
     COMPRA_MANIFEST,
     LAB_MANIFEST,
+    NUCLEO_MANIFEST,
 ];
 export function manifestByModuleKey(moduleKey) {
     return MANIFESTS.find((m) => m.module_key === moduleKey);
