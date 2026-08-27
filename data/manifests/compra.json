@@ -1,6 +1,6 @@
 {
   "module_key": "compra",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "functions": [
     { "function_key": "ver_facturas", "nombre": "Ver facturas", "descripcion": "Listar y ver el detalle de facturas, incluidos los avisos de duplicado", "autorizada_por_canal": false, "orden": 1, "delegable": true },
     { "function_key": "editar_facturas", "nombre": "Editar facturas", "descripcion": "Reasignar cliente y corregir campos extraídos", "autorizada_por_canal": false, "orden": 2, "delegable": true },
@@ -19,10 +19,10 @@
     { "function_key": "cargar_facturas", "nombre": "Cargar facturas", "descripcion": "Enviar comprobantes por WhatsApp, email o subida manual; el canal es la autorización", "autorizada_por_canal": true, "orden": 15, "delegable": true }
   ],
   "roles": [
-    { "role_key": "superadmin", "nombre": "Superadmin", "orden": 1, "functions": ["ver_facturas","editar_facturas","aprobar_facturas","rechazar_facturas","reabrir_facturas","verificar_fiscal_ad_hoc","reprocesar_facturas","exportar_comprobantes","gestionar_perfiles_exportacion","conciliar_marangatu","gestionar_clientes","gestionar_cuentas_contables","ver_actividad","configurar_verificacion_fiscal","cargar_facturas"] },
-    { "role_key": "admin", "nombre": "Admin", "orden": 2, "functions": ["ver_facturas","editar_facturas","aprobar_facturas","rechazar_facturas","reabrir_facturas","verificar_fiscal_ad_hoc","reprocesar_facturas","exportar_comprobantes","gestionar_perfiles_exportacion","conciliar_marangatu","gestionar_clientes","gestionar_cuentas_contables","ver_actividad","cargar_facturas"] },
-    { "role_key": "approver", "nombre": "Aprobador", "orden": 3, "functions": ["ver_facturas","editar_facturas","aprobar_facturas","rechazar_facturas","reabrir_facturas","verificar_fiscal_ad_hoc","exportar_comprobantes","gestionar_perfiles_exportacion","conciliar_marangatu","gestionar_clientes","gestionar_cuentas_contables","ver_actividad","cargar_facturas"] },
-    { "role_key": "uploader", "nombre": "Cargador", "orden": 4, "functions": ["cargar_facturas"] }
+    { "role_key": "superadmin", "nombre": "Superadmin", "orden": 1, "functions": [] },
+    { "role_key": "admin", "nombre": "Admin", "orden": 2, "functions": [] },
+    { "role_key": "approver", "nombre": "Aprobador", "orden": 3, "functions": [] },
+    { "role_key": "uploader", "nombre": "Cargador", "orden": 4, "functions": [] }
   ],
   "role_grant_matrix": {
     "superadmin": ["superadmin","admin","approver","uploader"],

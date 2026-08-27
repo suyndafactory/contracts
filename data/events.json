@@ -34,7 +34,6 @@
   { "type": "module_grant.role_changed", "origen_module": "foundation", "version": 1 },
   { "type": "module_grant.suspended", "origen_module": "foundation", "version": 1 },
   { "type": "module_grant.reactivated", "origen_module": "foundation", "version": 1 },
-  { "type": "module_grant.scope_changed", "origen_module": "foundation", "version": 1 },
   { "type": "mandate.proposed", "origen_module": "foundation", "version": 1 },
   { "type": "mandate.accepted", "origen_module": "foundation", "version": 1 },
   { "type": "mandate.rejected", "origen_module": "foundation", "version": 1 },

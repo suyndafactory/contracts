@@ -21,10 +21,15 @@ export interface ManifestFunction {
    */
   delegable: boolean;
   /**
-   * D2 — dimensión de scope declarada por el módulo. Opaca para Foundation:
-   * se almacena y se round-tripa; no se interpreta. Omitido / null → function
-   * unscoped (todas las de Compra). String no vacío → scoped. No hay enum
-   * global de scope types ni de Departamento en este paquete.
+   * Dimensión de alcance declarada por el módulo — OPACA para la plataforma.
+   * Ausente o null ⇒ función sin alcance (todas las de compra). String no
+   * vacío ⇒ función con alcance: Foundation almacena y round-tripea refs;
+   * SOLO el módulo interpreta el valor contra su propio catálogo (Lab:
+   * "departamento" contra sus Departments). Sin enum global a propósito —
+   * una dimensión nueva de un módulo futuro no exige release de contracts.
+   * Prohibidos los strings mágicos ("*", "all", ""): lo hace cumplir el
+   * verificador acá y Foundation re-valida al sembrar.
+   * V1: una función con scope_type no puede ser delegable ni componer roles.
    */
   scope_type?: string | null;
 }
@@ -50,6 +55,22 @@ export interface ManifestMandateProfile {
   function_keys: string[];
 }
 
+/**
+ * Preset de permisos de MIEMBRO para /equipo — preselección de tildes,
+ * JAMÁS fuente de autorización: no entra a la resolución efectiva, no se
+ * persiste el preset elegido (el rótulo se deriva por igualdad de conjunto),
+ * solo se escriben member_module_grants. A diferencia de
+ * ManifestMandateProfile (delegable-only, cross-org), un preset PUEDE
+ * incluir funciones no delegables y con scope — el scope se asigna aparte,
+ * nunca viaja en el preset. Plan de Integración Canónica v1.1 §4.
+ */
+export interface ManifestPermissionPreset {
+  preset_key: string;
+  nombre: string;
+  orden: number;
+  functions: string[];
+}
+
 export interface ModuleManifest {
   module_key: string;
   manifest_version: number;
@@ -58,9 +79,12 @@ export interface ModuleManifest {
   role_grant_matrix: Record<string, string[]>;
   /** 6.2 — perfiles de mandato precargados. Ver ManifestMandateProfile. */
   mandate_types: ManifestMandateProfile[];
+  /** Presets de UX para tildes de miembro. Ausente = el módulo no declara presets. */
+  permission_presets?: ManifestPermissionPreset[];
 }
 
 export const COMPRA_MANIFEST = compraManifestData as ModuleManifest;
+
 export const LAB_MANIFEST = labManifestData as ModuleManifest;
 
 export const MANIFESTS: readonly ModuleManifest[] = [

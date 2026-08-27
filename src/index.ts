@@ -44,6 +44,7 @@ export {
   type ModuleManifest,
   type ManifestFunction,
   type ManifestRole,
+  type ManifestPermissionPreset,
 } from "./manifests.js";
 
 export {
