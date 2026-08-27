@@ -27,142 +27,45 @@ function sameSet(a, b) {
 }
 
 /**
- * Generic walk over any ModuleManifest. Extracted so Lab (and future modules)
- * share uniqueness / referential checks. Compra-specific C7 arithmetic stays
- * in verifyCompraManifest — do not copy that function for Lab.
+ * Internal checks for data/manifests/compra.json (Bloque 1 / 6.1).
+ *
+ * v0.8.1 — RECONCILIACIÓN EQ-3. La aritmética C7 que vivía acá (superadmin =
+ * admin + configurar_verificacion_fiscal; approver = admin − reprocesar;
+ * uploader = solo cargar) describía una derivación rol→función que
+ * **producción apagó el 24-ago-2026** (DELETE manual sobre
+ * module_role_functions, censo FIX-1). El manifiesto ahora declara ese
+ * estado: los cuatro roles con `functions: []`.
+ *
+ * `roles` y `role_grant_matrix` NO se vacían: los roles sostienen la FK de
+ * module_access_grants (034) y la matriz es la autoridad C7 que consume
+ * invitations (foundation catalog/role-grant-matrix.ts). Lo único que muere
+ * es la derivación de funciones.
+ *
+ * El assert que reemplaza a la aritmética es lo que hace SATISFACIBLE el gate
+ * anti-resurrección del Plan v1.1 (enmienda 2): sembrar este manifiesto desde
+ * cero deja module_role_functions de compra en 0, igual que el upgrade.
  */
-function verifyManifestInvariants(m) {
-  const errors = [];
-  const fnKeys = m.functions.map((f) => f.function_key);
-  const fnSet = new Set(fnKeys);
-  if (fnSet.size !== fnKeys.length) {
-    errors.push(`${m.module_key}: duplicate function_key`);
-  }
-
-  const roleKeys = m.roles.map((r) => r.role_key);
-  const roleSet = new Set(roleKeys);
-  if (roleSet.size !== roleKeys.length) {
-    errors.push(`${m.module_key}: duplicate role_key`);
-  }
-
-  for (const role of m.roles) {
-    for (const fk of role.functions) {
-      if (!fnSet.has(fk)) {
-        errors.push(
-          `${m.module_key}: role ${role.role_key} references unknown function ${fk}`,
-        );
-      }
-    }
-  }
-
-  for (const [grantor, grantees] of Object.entries(m.role_grant_matrix)) {
-    if (!roleSet.has(grantor)) {
-      errors.push(`${m.module_key}: role_grant_matrix key unknown: ${grantor}`);
-    }
-    for (const g of grantees) {
-      if (!roleSet.has(g)) {
-        errors.push(
-          `${m.module_key}: role_grant_matrix[${grantor}] grants unknown role ${g}`,
-        );
-      }
-    }
-  }
-
-  const delegable = new Set(
-    m.functions.filter((f) => f.delegable).map((f) => f.function_key),
-  );
-  for (const profile of m.mandate_types) {
-    for (const fk of profile.function_keys) {
-      if (!delegable.has(fk)) {
-        errors.push(
-          `${m.module_key}: mandate profile ${profile.profile_key} lists non-delegable or unknown ${fk}`,
-        );
-      }
-    }
-  }
-
-  for (const f of m.functions) {
-    const st = f.scope_type;
-    if (st === undefined || st === null) continue;
-    if (typeof st !== "string" || st.length === 0) {
-      errors.push(
-        `${m.module_key}: ${f.function_key} scope_type must be omitted, null, or a non-empty string`,
-      );
-    }
-  }
-
-  return errors;
-}
-
-/** Wave A Lab: scoped only cargar/verificar; clinical functions not delegable. */
-function verifyLabManifest(m) {
-  const errors = [];
-  if (m.module_key !== "lab") {
-    errors.push(`lab manifest module_key must be lab; got ${m.module_key}`);
-  }
-
-  const scoped = new Set(["cargar", "verificar"]);
-  const clinical = new Set(["cargar", "verificar", "caja", "excepcion_cobro"]);
-
-  for (const f of m.functions) {
-    const st = f.scope_type;
-    if (scoped.has(f.function_key)) {
-      if (typeof st !== "string" || st.length === 0) {
-        errors.push(`${f.function_key} must declare a non-empty scope_type`);
-      }
-    } else if (st != null) {
-      errors.push(`${f.function_key} must be unscoped (no scope_type)`);
-    }
-
-    if (clinical.has(f.function_key) && f.delegable !== false) {
-      errors.push(`${f.function_key} must be delegable: false`);
-    }
-    if (f.function_key === "excepcion_cobro" && f.delegable !== false) {
-      errors.push("excepcion_cobro must be non-delegable");
-    }
-  }
-
-  if (!Array.isArray(m.mandate_types) || m.mandate_types.length !== 0) {
-    errors.push("lab mandate_types must be [] in Wave A");
-  }
-
-  return errors;
-}
-
-/** Internal checks for data/manifests/compra.json (Bloque 1 / 6.1). */
 function verifyCompraManifest(m) {
   const errors = [];
   const fnKeys = new Set(m.functions.map((f) => f.function_key));
   const roleKeys = new Set(m.roles.map((r) => r.role_key));
-  const byRole = Object.fromEntries(
-    m.roles.map((r) => [r.role_key, r.functions]),
-  );
 
-  const superadmin = byRole.superadmin ?? [];
-  const admin = byRole.admin ?? [];
-  const approver = byRole.approver ?? [];
-  const uploader = byRole.uploader ?? [];
-
-  const expectedSuper = sorted([...admin, "configurar_verificacion_fiscal"]);
-  if (!sameSet(superadmin, expectedSuper)) {
+  // Los cuatro roles C7 siguen declarados (la FK de module_access_grants y la
+  // matriz de invitations los necesitan) …
+  const C7 = ["superadmin", "admin", "approver", "uploader"];
+  if (!sameSet(m.roles.map((r) => r.role_key), C7)) {
     errors.push(
-      `superadmin must equal admin + configurar_verificacion_fiscal; got ${JSON.stringify(sorted(superadmin))}`,
+      `compra roles must remain exactly ${JSON.stringify(C7)}; got ${JSON.stringify(sorted(m.roles.map((r) => r.role_key)))}`,
     );
   }
-
-  const expectedApprover = sorted(
-    admin.filter((f) => f !== "reprocesar_facturas"),
-  );
-  if (!sameSet(approver, expectedApprover)) {
-    errors.push(
-      `approver must equal admin − reprocesar_facturas; got ${JSON.stringify(sorted(approver))}`,
-    );
-  }
-
-  if (!sameSet(uploader, ["cargar_facturas"])) {
-    errors.push(
-      `uploader must be only cargar_facturas; got ${JSON.stringify(uploader)}`,
-    );
+  // … y NINGUNO deriva funciones. Un rol con functions no vacío resucitaría
+  // la derivación que EQ-3 apagó en producción.
+  for (const role of m.roles) {
+    if (!Array.isArray(role.functions) || role.functions.length !== 0) {
+      errors.push(
+        `compra role ${role.role_key} must declare functions: [] (EQ-3 — la derivación rol→función está apagada); got ${JSON.stringify(role.functions)}`,
+      );
+    }
   }
 
   for (const role of m.roles) {
@@ -189,6 +92,170 @@ function verifyCompraManifest(m) {
     if (f.autorizada_por_canal !== expectCanal) {
       errors.push(
         `${f.function_key}: autorizada_por_canal should be ${expectCanal}`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Guards genéricos v0.8.0 (Plan de Integración Canónica v1.1 §4) — corren
+ * sobre TODOS los manifiestos; compra los pasa trivialmente (sin scopes ni
+ * presets). No tocan la aritmética C7 de verifyCompraManifest.
+ */
+function verifyManifestShared(m) {
+  const errors = [];
+  const fnByKey = new Map(m.functions.map((f) => [f.function_key, f]));
+
+  for (const f of m.functions) {
+    const st = f.scope_type;
+    if (st === undefined || st === null) continue;
+    if (typeof st !== "string" || st.trim() === "") {
+      errors.push(
+        `${m.module_key}/${f.function_key}: scope_type must be omitted, null, or a non-empty string`,
+      );
+      continue;
+    }
+    if (st === "*" || st.toLowerCase() === "all") {
+      errors.push(
+        `${m.module_key}/${f.function_key}: scope_type magic string prohibited (${st})`,
+      );
+    }
+    // Guard firmado: scoped ⇒ no delegable (V1).
+    if (f.delegable !== false) {
+      errors.push(
+        `${m.module_key}/${f.function_key}: scoped function must be delegable: false`,
+      );
+    }
+  }
+
+  // Guard firmado: una función con scope no compone roles.
+  for (const role of m.roles) {
+    for (const fk of role.functions) {
+      const fn = fnByKey.get(fk);
+      if (fn && fn.scope_type !== undefined && fn.scope_type !== null) {
+        errors.push(
+          `${m.module_key}: role ${role.role_key} includes scoped function ${fk}`,
+        );
+      }
+    }
+  }
+
+  // Guard firmado: preset referencia función existente del MISMO manifiesto.
+  const presets = m.permission_presets ?? [];
+  const presetKeys = new Set();
+  for (const p of presets) {
+    if (typeof p.preset_key !== "string" || p.preset_key.trim() === "") {
+      errors.push(`${m.module_key}: preset_key must be a non-empty string`);
+      continue;
+    }
+    if (presetKeys.has(p.preset_key)) {
+      errors.push(`${m.module_key}: duplicate preset_key ${p.preset_key}`);
+    }
+    presetKeys.add(p.preset_key);
+    if (typeof p.nombre !== "string" || p.nombre.trim() === "") {
+      errors.push(`${m.module_key}/${p.preset_key}: preset nombre must be non-empty`);
+    }
+    if (typeof p.orden !== "number") {
+      errors.push(`${m.module_key}/${p.preset_key}: preset orden must be a number`);
+    }
+    if (!Array.isArray(p.functions) || p.functions.length === 0) {
+      errors.push(
+        `${m.module_key}/${p.preset_key}: preset functions must list at least one function_key`,
+      );
+      continue;
+    }
+    for (const fk of p.functions) {
+      if (!fnByKey.has(fk)) {
+        errors.push(
+          `${m.module_key}/${p.preset_key}: preset references unknown function ${fk}`,
+        );
+      }
+    }
+  }
+
+  // Guard firmado (§5.d): los conjuntos de funciones de los presets de un
+  // módulo son distintos entre sí — el rótulo derivado del hub lo exige.
+  // Igualdad de CONJUNTO (dedup + orden-independiente), no del array.
+  const bySetSignature = new Map();
+  for (const p of presets) {
+    if (typeof p.preset_key !== "string" || !Array.isArray(p.functions)) continue;
+    const sig = JSON.stringify(sorted([...new Set(p.functions)]));
+    const prev = bySetSignature.get(sig);
+    if (prev !== undefined) {
+      errors.push(
+        `${m.module_key}: presets ${prev} and ${p.preset_key} share the same function set`,
+      );
+    } else {
+      bySetSignature.set(sig, p.preset_key);
+    }
+  }
+
+  return errors;
+}
+
+/** Las firmas congeladas del manifiesto lab (26-ago) — que no derritan en silencio. */
+function verifyLabManifest(m) {
+  const errors = [];
+  if (m.module_key !== "lab") {
+    errors.push(`lab manifest module_key must be lab; got ${m.module_key}`);
+  }
+  if (m.roles.length !== 0) {
+    errors.push("lab roles must be [] (firma: acceso 100% por tildes)");
+  }
+  if (Object.keys(m.role_grant_matrix).length !== 0) {
+    errors.push("lab role_grant_matrix must be {}");
+  }
+  if (m.mandate_types.length !== 0) {
+    errors.push("lab mandate_types must be [] in V1");
+  }
+
+  const scoped = m.functions.filter(
+    (f) => f.scope_type !== undefined && f.scope_type !== null,
+  );
+  if (!sameSet(scoped.map((f) => f.function_key), ["cargar", "verificar"])) {
+    errors.push(
+      `lab scoped functions must be exactly cargar+verificar; got ${JSON.stringify(sorted(scoped.map((f) => f.function_key)))}`,
+    );
+  }
+  for (const f of scoped) {
+    if (f.scope_type !== "departamento") {
+      errors.push(
+        `${f.function_key}: scope_type must be "departamento"; got ${f.scope_type}`,
+      );
+    }
+  }
+
+  const configurar = m.functions.find((f) => f.function_key === "configurar");
+  if (!configurar) {
+    errors.push("lab must declare configurar");
+  } else {
+    if (configurar.delegable !== false) {
+      errors.push("configurar must be delegable: false");
+    }
+    if (configurar.scope_type !== undefined && configurar.scope_type !== null) {
+      errors.push("configurar must be unscoped");
+    }
+  }
+
+  const MATRIZ = {
+    admision: ["ver", "admitir", "muestras", "entregar"],
+    carga: ["ver", "cargar"],
+    verificacion: ["ver", "verificar"],
+    configuracion: ["ver", "configurar"],
+  };
+  const presets = m.permission_presets ?? [];
+  if (!sameSet(presets.map((p) => p.preset_key), Object.keys(MATRIZ))) {
+    errors.push(
+      `lab presets must be exactly ${JSON.stringify(Object.keys(MATRIZ))}; got ${JSON.stringify(sorted(presets.map((p) => p.preset_key)))}`,
+    );
+  }
+  for (const p of presets) {
+    const expected = MATRIZ[p.preset_key];
+    if (expected && !sameSet(p.functions, expected)) {
+      errors.push(
+        `lab preset ${p.preset_key} must be ${JSON.stringify(expected)}; got ${JSON.stringify(sorted(p.functions))}`,
       );
     }
   }
@@ -290,61 +357,36 @@ console.log("Role C7 catalog:", rolesOk, ROLE_KEYS, PRIVILEGED_ROLE_KEYS);
 const manifestErrors = verifyCompraManifest(COMPRA_MANIFEST);
 console.log("compra manifest checks:", manifestErrors.length === 0 ? "ok" : manifestErrors);
 
-const compraUnscoped = COMPRA_MANIFEST.functions.every(
-  (f) => f.scope_type === undefined || f.scope_type === null,
-);
-console.log("compra functions unscoped (no scope_type):", compraUnscoped);
-
-const genericManifestErrors = MANIFESTS.flatMap(verifyManifestInvariants);
+const sharedManifestErrors = MANIFESTS.flatMap(verifyManifestShared);
 console.log(
-  "generic manifest invariants:",
-  genericManifestErrors.length === 0 ? "ok" : genericManifestErrors,
+  "shared manifest guards:",
+  sharedManifestErrors.length === 0 ? "ok" : sharedManifestErrors,
 );
-
-const labLookup = manifestByModuleKey("lab");
-const compraLookup = manifestByModuleKey("compra");
-const labLookupOk =
-  labLookup === LAB_MANIFEST &&
-  compraLookup === COMPRA_MANIFEST &&
-  LAB_MANIFEST.module_key === "lab" &&
-  MANIFESTS.length === 2;
-console.log("manifestByModuleKey lab/compra:", labLookupOk);
 
 const labErrors = verifyLabManifest(LAB_MANIFEST);
 console.log("lab manifest checks:", labErrors.length === 0 ? "ok" : labErrors);
 
-const resolveCap = CAPABILITIES.find((c) => c.key === "module_access.resolve");
-const resolveCapOk =
-  resolveCap?.availability === "FAIL_AFTER_GRACE" &&
-  resolveCap?.initiator === "both";
-console.log("module_access.resolve capability:", resolveCapOk);
+const labLookupOk =
+  manifestByModuleKey("lab") === LAB_MANIFEST &&
+  manifestByModuleKey("compra") === COMPRA_MANIFEST &&
+  MANIFESTS.length === 2;
+console.log("manifestByModuleKey lab/compra:", labLookupOk);
 
-const bannedLabCaps = CAPABILITIES.filter((c) => /^lab\./.test(c.key));
-console.log("no lab.* product capabilities:", bannedLabCaps.length === 0);
+// Guard firmado 4, tripwire ejecutable: sin enum global de scope types — a
+// propósito. Si algún día aparece "ScopeType" en data/enums.json, el DoD
+// grita en vez de aceptarlo en silencio.
+const enumsRaw = JSON.parse(readFileSync(join("data", "enums.json"), "utf8"));
+const noScopeTypeEnum = !Object.hasOwn(enumsRaw, "ScopeType");
+console.log("no global ScopeType enum:", noScopeTypeEnum);
 
 const grantEvents = [
   "module_grant.created",
   "module_grant.role_changed",
   "module_grant.suspended",
   "module_grant.reactivated",
-  "module_grant.scope_changed",
 ];
 const grantEventsOk = grantEvents.every((t) => actualTypes.includes(t));
 console.log("module_grant events present:", grantEventsOk);
-
-const scopeChangedEnvelope = {
-  event: "module_grant.scope_changed",
-  version: 1,
-  event_id: "evt-scope-1",
-  tenant_id: "550e8400-e29b-41d4-a716-446655440000",
-  origen_module: "foundation",
-  ref: { id: "grant-1" },
-  entity_version: 1,
-  change_mask: ["scope_refs"],
-  occurred_at: "2026-08-24T12:00:00.000Z",
-};
-const scopeChangedOk = validateEnvelope(scopeChangedEnvelope);
-console.log("module_grant.scope_changed envelope:", scopeChangedOk);
 
 const pass =
   ok1.ok === true &&
@@ -359,14 +401,11 @@ const pass =
   METERED_OPERATIONS.length === expectedMetered &&
   rolesOk &&
   manifestErrors.length === 0 &&
-  compraUnscoped &&
-  genericManifestErrors.length === 0 &&
-  labLookupOk &&
+  sharedManifestErrors.length === 0 &&
   labErrors.length === 0 &&
-  resolveCapOk &&
-  bannedLabCaps.length === 0 &&
-  grantEventsOk &&
-  scopeChangedOk.ok === true;
+  labLookupOk &&
+  noScopeTypeEnum &&
+  grantEventsOk;
 
 console.log(pass ? "\nDoD CHECK: PASS" : "\nDoD CHECK: FAIL");
 process.exit(pass ? 0 : 1);

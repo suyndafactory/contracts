@@ -9,21 +9,16 @@
     { "function_key": "verificar", "nombre": "Verificar", "descripcion": "Verificar resultados de ensayos", "autorizada_por_canal": false, "orden": 5, "delegable": false, "scope_type": "departamento" },
     { "function_key": "entregar", "nombre": "Entregar", "descripcion": "Entregar resultados en mostrador", "autorizada_por_canal": false, "orden": 6, "delegable": true },
     { "function_key": "caja", "nombre": "Caja", "descripcion": "Cobrar cuando el módulo opera caja propia", "autorizada_por_canal": false, "orden": 7, "delegable": false },
-    { "function_key": "excepcion_cobro", "nombre": "Excepción de cobro", "descripcion": "Admitir sin cobro; privilegio explícito no delegable", "autorizada_por_canal": false, "orden": 8, "delegable": false }
+    { "function_key": "excepcion_cobro", "nombre": "Excepción de cobro", "descripcion": "Admitir sin cobro; privilegio explícito no delegable", "autorizada_por_canal": false, "orden": 8, "delegable": false },
+    { "function_key": "configurar", "nombre": "Configurar", "descripcion": "Configurar el módulo: catálogo clínico, importaciones y ajustes estructurales", "autorizada_por_canal": false, "orden": 9, "delegable": false }
   ],
-  "roles": [
-    { "role_key": "admin_lab", "nombre": "Admin Lab", "orden": 1, "functions": ["ver", "admitir", "muestras", "cargar", "verificar", "entregar", "caja", "excepcion_cobro"] },
-    { "role_key": "recepcion", "nombre": "Recepción", "orden": 2, "functions": ["ver", "admitir", "muestras", "entregar"] },
-    { "role_key": "analitica", "nombre": "Analítica", "orden": 3, "functions": ["ver", "cargar"] },
-    { "role_key": "verificacion", "nombre": "Verificación", "orden": 4, "functions": ["ver", "verificar"] },
-    { "role_key": "caja", "nombre": "Caja", "orden": 5, "functions": ["ver", "caja"] }
-  ],
-  "role_grant_matrix": {
-    "admin_lab": ["admin_lab", "recepcion", "analitica", "verificacion", "caja"],
-    "recepcion": [],
-    "analitica": [],
-    "verificacion": [],
-    "caja": []
-  },
-  "mandate_types": []
+  "roles": [],
+  "role_grant_matrix": {},
+  "mandate_types": [],
+  "permission_presets": [
+    { "preset_key": "admision", "nombre": "Admisión", "orden": 1, "functions": ["ver", "admitir", "muestras", "entregar"] },
+    { "preset_key": "carga", "nombre": "Carga", "orden": 2, "functions": ["ver", "cargar"] },
+    { "preset_key": "verificacion", "nombre": "Verificación", "orden": 3, "functions": ["ver", "verificar"] },
+    { "preset_key": "configuracion", "nombre": "Configuración", "orden": 4, "functions": ["ver", "configurar"] }
+  ]
 }
