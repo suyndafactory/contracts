@@ -1,0 +1,21 @@
+{
+  "module_key": "nucleo",
+  "manifest_version": 1,
+  "functions": [
+    { "function_key": "ver_libro", "nombre": "Ver libro", "descripcion": "Ver y navegar el libro del propio espacio: cola de pendientes, mayores, extractos, estado de conciliación. Read-only.", "autorizada_por_canal": false, "orden": 1, "delegable": true },
+    { "function_key": "operar_registro", "nombre": "Operar registro", "descripcion": "Operar el registro diario del espacio: clasificar pendientes, registrar cobros/pagos, cargar/aparear extractos, conciliar.", "autorizada_por_canal": false, "orden": 2, "delegable": true },
+    { "function_key": "aprobar", "nombre": "Aprobar", "descripcion": "Aprobar lo sensible del espacio: órdenes, conciliaciones sensibles, resultados de cierre.", "autorizada_por_canal": false, "orden": 3, "delegable": true },
+    { "function_key": "cerrar_periodo", "nombre": "Cerrar período", "descripcion": "Ejecutar el cierre de período del propio espacio (la operación medida closing.month_run).", "autorizada_por_canal": false, "orden": 4, "delegable": false },
+    { "function_key": "aplicar_comun_acotado", "nombre": "Aplicar común acotado", "descripcion": "Aplicar un recurso/movimiento común estrictamente necesario contra partidas del propio espacio. No es autoridad de contribuyente.", "autorizada_por_canal": false, "orden": 5, "delegable": true },
+    { "function_key": "operar_contribuyente", "nombre": "Operar contribuyente", "descripcion": "Administrar el Libro común (incluido el banco común), ver Contribuyente completo, ejecutar el cierre a nivel contribuyente, administrar masters comunes y determinaciones fiscales del RUC.", "autorizada_por_canal": false, "orden": 6, "delegable": false },
+    { "function_key": "configurar", "nombre": "Configurar", "descripcion": "Configurar el módulo en el espacio: plan de cuentas, políticas explícitas, ajustes estructurales.", "autorizada_por_canal": false, "orden": 7, "delegable": false }
+  ],
+  "roles": [],
+  "role_grant_matrix": {},
+  "mandate_types": [],
+  "permission_presets": [
+    { "preset_key": "operacion", "nombre": "Operación", "orden": 1, "functions": ["ver_libro", "operar_registro"] },
+    { "preset_key": "aprobacion", "nombre": "Aprobación", "orden": 2, "functions": ["ver_libro", "operar_registro", "aprobar", "cerrar_periodo"] },
+    { "preset_key": "direccion", "nombre": "Dirección", "orden": 3, "functions": ["ver_libro", "operar_registro", "aprobar", "cerrar_periodo", "operar_contribuyente", "configurar"] }
+  ]
+}

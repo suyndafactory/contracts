@@ -76,6 +76,7 @@ export interface ModuleManifest {
 }
 export declare const COMPRA_MANIFEST: ModuleManifest;
 export declare const LAB_MANIFEST: ModuleManifest;
+export declare const NUCLEO_MANIFEST: ModuleManifest;
 export declare const MANIFESTS: readonly ModuleManifest[];
 export declare function manifestByModuleKey(moduleKey: string): ModuleManifest | undefined;
 //# sourceMappingURL=manifests.d.ts.map

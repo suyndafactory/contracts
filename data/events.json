@@ -19,6 +19,7 @@
   { "type": "purchase.registered", "origen_module": "compra", "version": 1 },
   { "type": "purchase.approved", "origen_module": "compra", "version": 1 },
   { "type": "purchase.rejected", "origen_module": "compra", "version": 1 },
+  { "type": "purchase.voided", "origen_module": "compra", "version": 1 },
   { "type": "supplier.fiscal_verified", "origen_module": "compra", "version": 1 },
   { "type": "employee.status_changed", "origen_module": "talento", "version": 1 },
   { "type": "tenant.module_activated", "origen_module": "foundation", "version": 1 },

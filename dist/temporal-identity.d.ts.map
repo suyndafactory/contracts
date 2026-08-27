@@ -1,0 +1,1 @@
+{"version":3,"file":"temporal-identity.d.ts","sourceRoot":"","sources":["../src/temporal-identity.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;;;;;;;;;GAyBG;AAEH,MAAM,WAAW,0BAA0B;IACzC,UAAU,EAAE,UAAU,GAAG,WAAW,GAAG,sBAAsB,CAAC;IAC9D,qDAAqD;IACrD,YAAY,EAAE,MAAM,CAAC;IACrB,wEAAwE;IACxE,cAAc,EAAE,MAAM,GAAG,IAAI,CAAC;CAC/B"}

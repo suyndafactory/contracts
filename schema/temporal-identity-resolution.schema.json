@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://suynda.com/schemas/temporal-identity-resolution.schema.json",
+  "title": "Suynda TemporalIdentityResolution",
+  "description": "Resolution metadata only. Does not include a Party or fiscal-profile snapshot. Unknown fields are rejected. entity_version is non-null only when resolution is resolved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "resolution",
+    "effective_at",
+    "entity_version"
+  ],
+  "properties": {
+    "resolution": {
+      "type": "string",
+      "enum": ["resolved", "not_found", "insufficient_history"]
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date",
+      "description": "Consulted identity_date (ISO-8601 date)"
+    },
+    "entity_version": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "Effective version; non-null only when resolution is resolved"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "resolution": { "const": "resolved" } },
+        "required": ["resolution"]
+      },
+      "then": {
+        "properties": { "entity_version": { "type": "integer", "minimum": 1 } }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resolution": { "enum": ["not_found", "insufficient_history"] }
+        },
+        "required": ["resolution"]
+      },
+      "then": {
+        "properties": { "entity_version": { "type": "null" } }
+      }
+    }
+  ]
+}
